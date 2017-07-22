@@ -1,7 +1,7 @@
 
 #pragma once
 
-namespace geo
+namespace Geo
 {
 template <size_t N> struct iterate_forw
 {
@@ -63,4 +63,4 @@ template < bool targ > struct iterate_back_until<0, targ>
     return targ;
   }
 } ;
-} // geo
+} // Geo

@@ -1,7 +1,7 @@
 
 #pragma once
 
-namespace geo
+namespace Geo
 {
 typedef double real;
 
@@ -40,5 +40,5 @@ template <class num> inline num gk_sq(const num v)
 {
   return gk_pow<num>::template to<2>(v);
 }
-} // namespace geo
+} // namespace Geo
 
