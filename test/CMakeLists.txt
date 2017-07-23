@@ -1,5 +1,5 @@
 #include (ACGCommon)
-
+ cmake_minimum_required(VERSION 3.5)
 include_directories (
   ${CMAKE_CURRENT_SOURCE_DIR}/../include
   ${CMAKE_CURRENT_SOURCE_DIR}/../Catch/include
@@ -8,9 +8,11 @@ include_directories (
 
 # Create new target named unittests_hexmeshing
 FILE(GLOB UNITTEST_CC *.cc)
-FILE(GLOB UNITTEST_HH *.hh)
+FILE(GLOB UNITTEST_HH *.hh )
+FILE(GLOB VECTOR_H "../include/*.h")
+
 # Create unittest executable
-add_executable(unittests ${UNITTEST_CC} ${UNITTEST_HH})
+add_executable(unittests ${UNITTEST_CC} ${UNITTEST_HH} ${VECTOR_H})
 
 # Set output directory to ${BINARY_DIR}/Unittests
 set (OUTPUT_DIR "${CMAKE_BINARY_DIR}/Unittests")

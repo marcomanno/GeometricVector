@@ -19,3 +19,8 @@ TEST_CASE("base", "base")
   Geo::Vers<3> a2(1, 4, 5);
   REQUIRE(Geo::v_cross(a, a2).len_sq() == 0);
  }
+
+TEST_CASE("pow", "pow")
+{
+  auto val = Geo::gk_pow<double>::to<6>(4.);
+}

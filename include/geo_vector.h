@@ -4,12 +4,6 @@
 #include "geo_iter.h"
 #include "geo_pow.h"
 
-//#include <type_traits>
-//#include <limits>
-//#include <assert.h>
-//#include <algorithm>
-//#include <array>
-
 namespace Geo
 {
 typedef double real;
@@ -19,17 +13,16 @@ protected:
   T m_el[N];
   void set_null()
   {
-    T * a = m_el;
-    iterate_forw<N>::eval([&a](int i)
+    iterate_forw<N>::eval([this](int i)
     {
-      a[i] = static_cast<T> (0); } );
+      m_el[i] = static_cast<T> (0);
+    } );
   }
-  bool is_null()
+  bool is_null() const
   {
-    T * a = m_el;
-    return iterate_forw_until<N, false>::eval([&a](int i)
+    return iterate_forw_until<N, false>::eval([this](int i)
     {
-      return a[i] == static_cast<T> (0);
+      return m_el[i] == static_cast<T> (0);
     });
   }
   template<typename Arg1>
@@ -43,20 +36,37 @@ protected:
     p[0] = a1;
     assign(p + 1, a2...);
   }
-
-public:
-  const T& operator [] (int i) const
-  {
-    return m_el[i];
-  }
   T len_sq() const
   {
     T v = 0;
-    const T* a = m_el;
-    iterate_forw<N>::eval([a, &v](int i)
+    iterate_forw<N>::eval([this, &v](size_t i)
     {
-      v += gk_sq<T>(a[i]); } );
+      v += gk_sq<T>(m_el[i]);
+    });
     return v;
+  }
+  T len() const
+  {
+    return sqrt(len_sq());
+  }
+  T normalize()
+  {
+    T mod = Vect_base::len_sq();
+    if (mod != 0 && mod != 1.)
+    {
+      mod = sqrt(mod);
+      iterate_forw<N>::eval([this, mod](size_t i)
+      {
+        m_el[i] /= mod;
+      });
+    }
+    return mod;
+  }
+
+public:
+  const T& operator [] (size_t i) const
+  {
+    return m_el[i];
   }
   T * coord() { return m_el; }
   const T * coord() const { return m_el; }
@@ -66,6 +76,7 @@ public:
     Dimension = N
   } ;
 } ;
+
 template <size_t N=3, typename T=real> class Vect : public Vect_base<N, T>
 {
 public:
@@ -104,6 +115,11 @@ public:
       m_el[i] = val;
     });
   }
+  // Make some base class public
+  using Vect_base::len;
+  using Vect_base::len_sq;
+  using Vect_base::normalize;
+
   Vect<N, T> & operator +=(const Vect_base<N, T> & a)
   {
     struct plus_eq { void operator()(T & a, const T & b) { a += b; }; };
@@ -116,7 +132,7 @@ public:
     oper_self<minus_eq>(a);
     return *this;
   }
-  T & operator [] (int i)
+  T & operator [] (size_t i)
   {
     return m_el[i];
   }
@@ -125,9 +141,10 @@ private:
   {
     T * a = this->m_el;
     const T * b = x.coord();
-    iterate_forw<N>::eval([&a, &b](int i) { op()(a[i], b[i]); } );
+    iterate_forw<N>::eval([&a, &b](size_t i) { op()(a[i], b[i]); } );
   }
-} ;
+};
+
 template <size_t N=3, typename T=real> class Vers : public Vect_base<N, T>
 {
 public:
@@ -155,31 +172,22 @@ public:
   }
   double init(const T coo[N])
   {
-    T * p = this->m_el;
-    iterate_forw<N>::eval([&p, coo](int i)
+    iterate_forw<N>::eval([this, coo](size_t i)
     {
-      p[i] = coo[i]; } );
+      m_el[i] = coo[i]
+    } );
     return normalize();
   }
-  T normalize()
+  T len_sq() const
   {
-    T mod = 0, * p = this->m_el;
-    iterate_forw<N>::eval([&mod, &p](int i)
-    {
-      mod += gk_sq<T>(p[i]);
-    } );
-    if (mod == 0)
-      Vect_base<N, T>::set_null();
-    else
-    {
-      mod = sqrt(mod);
-      iterate_forw<N>::eval([&p, mod](int i)
-      {
-        p[i] /= mod; } );
-    }
-    return mod;
+    return static_cast<T>(is_null() ? 0. : 1.);
+  }
+  T len() const
+  {
+    return len_sq();
   }
 } ;
+
 template <size_t N, typename T>
 Vect<N, T> operator +(const Vect_base<N, T> & a, const Vect_base<N, T> & b)
 {
@@ -226,38 +234,20 @@ Vect<3, T> v_cross(const Vect_base<3, T> & a, const Vect_base<3, T> & b)
   c[2] = a[0] * b[1] - a[1] * b[0];
   return c;
 }
-template <size_t N, typename T> T v_sq_len(const Vect<N, T> & a)
-{
-  return v_dot(a, a);
-}
-template <size_t N, typename T> T v_sq_len(const Vers<N, T> & a)
-{
-  return static_cast<T> (1);
-}
-template <size_t N, typename T> T v_len(const Vect<N, T> & a)
-{
-  return sqrt(v_sq_len(a));
-}
-template <size_t N, typename T> T v_len(const Vers<N, T> & a)
-{
-  return static_cast<T> (1);
-}
-template <typename T1, typename T2>
-typename T1::mygeotype v_cos_angle(const T1 & a, const T2 & b)
-{
-  return v_dot(a, b) / sqrt(v_sq_len(a) * v_sq_len(b));
-}
-template <size_t N, typename T>
-T v_sq_cos_angle(const Vect<N, T> & a, const Vect<N, T> & b)
-{
-  return gk_sq(v_dot(a, b)) / (v_sq_len(a) * v_sq_len(b));
-}
 template <typename T>
 T v_cross(const Vect_base<2, T> & a, const Vect_base<2, T> & b)
 {
   return a[0] * b[1] - a[1] * b[0];
 }
-
-
+template <typename T1, typename T2>
+typename T1::mygeotype v_cos_angle(const T1 & a, const T2 & b)
+{
+  return v_dot(a, b) / sqrt(a.len_sq() * b.len_sq());
+}
+template <size_t N, typename T>
+T v_sq_cos_angle(const Vect<N, T> & a, const Vect<N, T> & b)
+{
+  return gk_sq(v_cos_angle(a, b));
+}
 };
 
